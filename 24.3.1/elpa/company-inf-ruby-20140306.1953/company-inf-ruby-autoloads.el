@@ -4,7 +4,7 @@
 
 
 ;;;### (autoloads nil nil ("company-inf-ruby-pkg.el" "company-inf-ruby.el")
-;;;;;;  (21276 12159 597113 598000))
+;;;;;;  (21319 23077 302055 442000))
 
 ;;;***
 

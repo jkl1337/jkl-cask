@@ -3,8 +3,8 @@
 ;;; Code:
 
 
-;;;### (autoloads (company-go) "company-go" "company-go.el" (21256
-;;;;;;  11530 350176 560000))
+;;;### (autoloads (company-go) "company-go" "company-go.el" (21319
+;;;;;;  23077 426928 587000))
 ;;; Generated autoloads from company-go.el
 
 (autoload 'company-go "company-go" "\
@@ -14,8 +14,8 @@
 
 ;;;***
 
-;;;### (autoloads nil nil ("company-go-pkg.el") (21256 11530 362002
-;;;;;;  825000))
+;;;### (autoloads nil nil ("company-go-pkg.el") (21319 23077 434236
+;;;;;;  533000))
 
 ;;;***
 
