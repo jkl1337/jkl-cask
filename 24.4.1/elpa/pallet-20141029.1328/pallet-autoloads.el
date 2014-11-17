@@ -3,7 +3,7 @@
 ;;; Code:
 (add-to-list 'load-path (or (file-name-directory #$) (car load-path)))
 
-;;;### (autoloads nil "pallet" "pallet.el" (21589 5174 933745 37000))
+;;;### (autoloads nil "pallet" "pallet.el" (21610 24626 674993 181000))
 ;;; Generated autoloads from pallet.el
 
 (defvar pallet-mode nil "\
@@ -22,7 +22,7 @@ Maintain entries in your Cask file automatically.
 
 ;;;***
 
-;;;### (autoloads nil nil ("pallet-pkg.el") (21589 5174 940464 599000))
+;;;### (autoloads nil nil ("pallet-pkg.el") (21610 24626 681473 459000))
 
 ;;;***
 
