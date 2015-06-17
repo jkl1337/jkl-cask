@@ -591,12 +591,6 @@ input method with `toggle-input-method'."
   :group 'helm
   :type 'boolean)
 
-(defcustom helm-header-line-prompt " Input: "
-  "The name of the pseudo prompt where input is echoed in `header-line'.
-This take effect only when `helm-echo-input-in-header-line' is non--nil."
-  :group 'helm
-  :type 'string)
-
 
 ;;; Faces
 ;;
@@ -1920,6 +1914,7 @@ in source.
            unless (memq key helm-argument-keys)
            collect (cons sym value)))
 
+(defvar helm--prompt nil)
 ;;; Core: entry point helper
 (defun helm-internal (&optional
                         any-sources any-input
@@ -1943,6 +1938,7 @@ ANY-KEYMAP ANY-DEFAULT ANY-HISTORY See `helm'."
   (helm-log "any-keymap = %S" any-keymap)
   (helm-log "any-default = %S" any-default)
   (helm-log "any-history = %S" any-history)
+  (setq helm--prompt (or any-prompt "pattern: "))
   (let ((non-essential t)
         (input-method-verbose-flag helm-input-method-verbose-flag)
         (old--cua cua-mode)
@@ -1969,6 +1965,7 @@ ANY-KEYMAP ANY-DEFAULT ANY-HISTORY See `helm'."
                  (when helm-prevent-escaping-from-minibuffer
                    (helm--remap-mouse-mode 1)) ; Disable mouse bindings.
                  (add-hook 'post-command-hook 'helm--maybe-update-keymap)
+                 (add-hook 'post-command-hook 'helm--update-header-line)
                  (helm-log "show prompt")
                  (unwind-protect
                       (helm-read-pattern-maybe
@@ -1983,6 +1980,7 @@ ANY-KEYMAP ANY-DEFAULT ANY-HISTORY See `helm'."
             (helm-log (concat "[End session (quit)] " (make-string 34 ?-)))
             nil))
       (remove-hook 'post-command-hook 'helm--maybe-update-keymap)
+      (remove-hook 'post-command-hook 'helm--update-header-line)
       (if (fboundp 'advice-add)
           (progn
             (advice-remove 'tramp-read-passwd
@@ -3684,29 +3682,30 @@ Coerce source with coerce function."
   "Select an action for the currently selected candidate.
 If action buffer is selected, back to the helm buffer."
   (interactive)
-  (helm-log-run-hook 'helm-select-action-hook)
-  (setq helm-saved-selection (helm-get-selection))
-  (with-selected-frame (with-helm-window (selected-frame))
-    (prog1
-        (cond ((get-buffer-window helm-action-buffer 'visible)
-               (set-window-buffer (get-buffer-window helm-action-buffer)
-                                  helm-buffer)
-               (kill-buffer helm-action-buffer)
-               (helm-display-mode-line (helm-get-current-source))
-               (helm-set-pattern helm-input 'noupdate))
-              (helm-saved-selection
-               (setq helm-saved-current-source (helm-get-current-source))
-               (let ((actions (helm-get-actions-from-current-source)))
-                 (if (functionp actions)
-                     (message "Sole action: %s" actions)
-                     (helm-show-action-buffer actions)
-                     ;; Be sure the minibuffer is entirely deleted (#907).
-                     (helm--delete-minibuffer-contents-from "")
-                     ;; Make `helm-pattern' differs from the previous value.
-                     (setq helm-pattern 'dummy)
-                     (helm-check-minibuffer-input))))
-              (t (message "No Actions available")))
-      (run-hooks 'helm-window-configuration-hook))))
+  (let ((src (helm-get-current-source)))
+    (helm-log-run-hook 'helm-select-action-hook)
+    (setq helm-saved-selection (helm-get-selection))
+    (with-selected-frame (with-helm-window (selected-frame))
+      (prog1
+          (cond ((get-buffer-window helm-action-buffer 'visible)
+                 (set-window-buffer (get-buffer-window helm-action-buffer)
+                                    helm-buffer)
+                 (kill-buffer helm-action-buffer)
+                 (helm-set-pattern helm-input 'noupdate))
+                (helm-saved-selection
+                 (setq helm-saved-current-source src)
+                 (let ((actions (helm-get-actions-from-current-source)))
+                   (if (functionp actions)
+                       (message "Sole action: %s" actions)
+                       (helm-show-action-buffer actions)
+                       ;; Be sure the minibuffer is entirely deleted (#907).
+                       (helm--delete-minibuffer-contents-from "")
+                       ;; Make `helm-pattern' differs from the previous value.
+                       (setq helm-pattern 'dummy)
+                       (helm-check-minibuffer-input))))
+                (t (message "No Actions available")))
+        (helm-display-mode-line src)
+        (run-hooks 'helm-window-configuration-hook)))))
 
 (defun helm-show-action-buffer (actions)
   (with-current-buffer (get-buffer-create helm-action-buffer)
@@ -3799,7 +3798,7 @@ Possible value of DIRECTION are 'next or 'previous."
     ;; Setup header-line.
     (cond (helm-echo-input-in-header-line
            (setq force t)
-           (helm--update-header-line))
+           (helm--set-header-line))
           (helm-display-header-line
            (let* ((hlstr (helm-interpret-value
                           (and (listp source)
@@ -3810,12 +3809,44 @@ Possible value of DIRECTION are 'next or 'previous."
                    (propertize (concat " " hlstr hlend) 'face 'helm-header))))))
   (when force (force-mode-line-update)))
 
-(defun helm--update-header-line ()
+(defun helm--set-header-line (&optional update)
   (with-helm-window
-    (setq header-line-format
-          (concat (propertize helm-header-line-prompt
-                              'face 'minibuffer-prompt)
-                  (substring-no-properties helm-pattern)))))
+    (let* ((comp (with-current-buffer (window-buffer (minibuffer-window))
+                   (if (get-text-property (point) 'read-only)
+                       "" (helm-minibuffer-completion-contents))))
+           (prt (propertize helm--prompt
+                            'face 'minibuffer-prompt))
+           (pos (+ (length prt) (length comp))))
+      (setq header-line-format
+            (concat " " ; [1]
+                    prt
+                    (substring-no-properties comp)
+                    (condition-case _err
+                        (substring-no-properties helm-pattern
+                                                 (if (string= helm-pattern "")
+                                                     0 (length comp)))
+                      ;; Sometimes the value of the input
+                      ;; is not yet the same as helm-pattern.
+                      ;; Generally it is one more char than helm-pattern
+                      ;; until update (grep).
+                      (args-out-of-range nil))
+                    " "))
+      ;; Increment pos to handle the space before prompt [1].
+      (put-text-property (1+ pos) (+ pos 2)
+                         'face 'cursor header-line-format))
+    (when update (force-mode-line-update))))
+
+(defun helm--update-header-line ()
+  ;; This should be used in `post-command-hook',
+  ;; nowhere else.
+  (when (and helm-echo-input-in-header-line
+             ;; Ensure we don't update when pattern
+             ;; is empty from post-command-hook, otherwise
+             ;; we loose default-as-input.
+             ;; This will be done after update
+             ;; in helm-display-mode-line.
+             (not (string= helm-pattern "")))
+    (helm--set-header-line t)))
 
 (defun helm-show-candidate-number (&optional name)
   "Used to display candidate number in mode-line.
