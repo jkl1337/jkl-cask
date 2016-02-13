@@ -1,7 +1,4 @@
 (1
- (dockerfile-mode .
-		  [(0 1)
-		   nil "Major mode for editing Docker's Dockerfiles" single])
  (zone-nyan .
 	    [(0 2 2)
 	     ((esxml
@@ -107,7 +104,7 @@
 		 [(0 0 3)
 		  nil "Look up wxWidgets API by using local html manual." tar])
  (wsd-mode .
-	   [(0 4 2)
+	   [(0 5 0)
 	    nil "Emacs major-mode for www.websequencediagrams.com" tar])
  (ws-trim .
 	  [(1 4)
@@ -2582,6 +2579,9 @@
  (hungry-delete .
 		[(1 1 2)
 		 nil "hungry delete minor mode" single])
+ (hugo .
+       [(0 1 0)
+	nil "Helper functions for Hugo" single])
  (httpd .
 	[(1 0 1)
 	 nil "HTTP/1.0 web server for emacs" single])
@@ -3489,7 +3489,7 @@
 		  [(0 2 1)
 		   nil "Notify popup for ERC" single])
  (erc-hl-nicks .
-	       [(1 3 1)
+	       [(1 3 2)
 		nil "ERC nick highlighter that ignores uniquifying chars when colorizing" single])
  (eprime-mode .
 	      [(1 1 2)
@@ -3777,6 +3777,9 @@
  (doctags .
 	  [(0 1)
 	   nil "Generation of tags documentation in Doxygen syntax" single])
+ (dockerfile-mode .
+		  [(0 1)
+		   nil "Major mode for editing Docker's Dockerfiles" single])
  (dna-mode .
 	   [(1 44)
 	    nil "a major mode for editing dna sequences" single])
